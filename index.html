@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistema de Registro de Observações</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 0; padding: 20px; }
+        .container { max-width: 800px; margin: 0 auto; }
+        h1 { text-align: center; }
+        form { margin-bottom: 20px; }
+        label { display: block; margin-bottom: 5px; }
+        input, textarea, button { width: 100%; padding: 10px; margin-bottom: 10px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        th, td { border: 1px solid #ccc; padding: 10px; text-align: left; }
+        th { background-color: #f4f4f4; }
+        .actions { display: flex; gap: 10px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Sistema de Registro de Observações</h1>
+
+        <!-- Login Form -->
+        <div id="login-form">
+            <h2>Login</h2>
+            <form onsubmit="login(event)">
+                <label for="login-email">E-mail:</label>
+                <input type="email" id="login-email" required>
+                <label for="login-password">Senha:</label>
+                <input type="password" id="login-password" required>
+                <button type="submit">Login</button>
+            </form>
+            <button onclick="showRegisterForm()">Não tem uma conta? Cadastre-se</button>
+        </div>
+
+        <!-- Register Form -->
+        <div id="register-form" style="display:none;">
+            <h2>Cadastro</h2>
+            <form onsubmit="register(event)">
+                <label for="register-email">E-mail:</label>
+                <input type="email" id="register-email" required>
+                <label for="register-password">Senha:</label>
+                <input type="password" id="register-password" required>
+                <button type="submit">Cadastrar</button>
+                <p id="registration-status" style="display:none;">Seu e-mail será avaliado.</p>
+            </form>
+            <button onclick="showLoginForm()">Já tem uma conta? Faça login</button>
+        </div>
+
+        <!-- Admin Approval Form -->
+        <div id="admin-approval-form" style="display:none;">
+            <h2>Aprovação de Usuários Pendentes</h2>
+            <form onsubmit="approveUser(event)">
+                <label for="admin-email">Seu e-mail (administrador):</label>
+                <input type="email" id="admin-email" required>
+                <label for="admin-password">Sua senha (administrador):</label>
+                <input type="password" id="admin-password" required>
+                <label for="user-email">E-mail do usuário a aprovar:</label>
+                <input type="email" id="user-email" required>
+                <button type="submit">Aprovar Usuário</button>
+                <button type="button" onclick="denyUser()">Não autorizar cadastro</button>
+            </form>
+        </div>
+
+        <!-- Main App -->
+        <div id="app" style="display:none;">
+            <h2>Nova Observação</h2>
+            <form id="observation-form" onsubmit="addObservation(event)">
+                <label for="name">Nome:</label>
+                <input type="text" id="name" required>
+                <label for="studentNumber">Número de Aluno:</label>
+                <input type="text" id="studentNumber" required>
+                <label for="date">Data:</label>
+                <input type="date" id="date" required>
+                <label for="observation">Observação:</label>
+                <textarea id="observation" required></textarea>
+                <button type="submit">Salvar Observação</button>
+            </form>
+
+            <h2>Observações Registradas</h2>
+            <input type="text" id="search" placeholder="Buscar..." oninput="filterObservations()">
+            <button onclick="exportToCSV()">Exportar para CSV</button>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Nome</th>
+                        <th>Número de Aluno</th>
+                        <th>Data</th>
+                        <th>Observação</th>
+                        <th>Ações</th>
+                    </tr>
+                </thead>
+                <tbody id="observations-list"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        // Função para exibir formulário de cadastro
+        function showRegisterForm() {
+            document.getElementById('login-form').style.display = 'none';
+            document.getElementById('register-form').style.display = 'block';
+            document.getElementById('admin-approval-form').style.display = 'none';
+            document.getElementById('app').style.display = 'none';
+        }
+
+        // Função para exibir formulário de login
+        function showLoginForm() {
+            document.getElementById('register-form').style.display = 'none';
+            document.getElementById('login-form').style.display = 'block';
+            document.getElementById('admin-approval-form').style.display = 'none';
+            document.getElementById('app').style.display = 'none';
+        }
+
+        // Função para simular cadastro de usuário
+        function register(event) {
+            event.preventDefault();
+            const email = document.getElementById('register-email').value;
+            const password = document.getElementById('register-password').value;
+
+            // Salva o e-mail e senha no localStorage (simulação)
+            localStorage.setItem('registrationPending', JSON.stringify({ email, password }));
+
+            // Exibe mensagem de sucesso
+            document.getElementById('registration-status').style.display = 'block';
+
+            // Limpa campos de cadastro
+            document.getElementById('register-email').value = '';
+            document.getElementById('register-password').value = '';
+        }
+
+        // Função para simular login
+        function login(event) {
+            event.preventDefault();
+            const email = document.getElementById('login-email').value;
+            const password = document.getElementById('login-password').value;
+
+            // Verifica se é o administrador
+            if (email === 'mayconmb16@gmail.com' && password === 'maycon123!') {
+                showAdminApprovalForm();
+            } else {
+                alert('E-mail ou senha incorretos. Por favor, tente novamente.');
+            }
+        }
+
+        // Função para exibir formulário de aprovação de usuários pelo administrador
+        function showAdminApprovalForm() {
+            document.getElementById('login-form').style.display = 'none';
+            document.getElementById('register-form').style.display = 'none';
+            document.getElementById('admin-approval-form').style.display = 'block';
+            document.getElementById('app').style.display = 'none';
+
+            // Preenche o e-mail do administrador para aprovação
+            document.getElementById('admin-email').value = 'mayconmb16@gmail.com';
+        }
+
+        // Função para aprovar usuário pelo administrador
+        function approveUser(event) {
+            event.preventDefault();
+            const adminEmail = document.getElementById('admin-email').value;
+            const adminPassword = document.getElementById('admin-password').value;
+            const userEmail = document.getElementById('user-email').value;
+
+            // Verifica credenciais do administrador (simulação)
+            if (adminEmail === 'mayconmb16@gmail.com' && adminPassword === 'maycon123!') {
+                // Aprova o usuário (simulação)
+                alert(`E-mail ${userEmail} aprovado.`);
+                clearAdminApprovalForm();
+            } else {
+                alert('Credenciais de administrador incorretas.');
+            }
+        }
+
+        // Função para negar o cadastro do usuário pelo administrador
+        function denyUser() {
+            alert('Cadastro não autorizado.');
+            clearAdminApprovalForm();
+        }
+
+        // Função para limpar o formulário de aprovação do administrador
+        function clearAdminApprovalForm() {
+            document.getElementById('admin-email').value = '';
+            document.getElementById('admin-password').value = '';
+            document.getElementById('user-email').value = '';
+            document.getElementById('admin-approval-form').style.display = 'none';
+            document.getElementById('login-form').style.display = 'block';
+        }
+
+        // Função para adicionar observação (simulação)
+        function addObservation(event) {
+            event.preventDefault();
+            const name = document.getElementById('name').value;
+            const studentNumber = document.getElementById('studentNumber').value;
+            const date = document.getElementById('date').value;
+            const observation = document.getElementById('observation').value;
+
+            // Simulação de adição de observação
+            console.log('Observação adicionada:');
+            console.log('Nome:', name);
+            console.log('Número de Aluno:', studentNumber);
+            console.log('Data:', date);
+            console.log('Observação:', observation);
+
+            // Exemplo de mensagem de sucesso (simulação)
+            alert('Observação registrada com sucesso.');
+
+            // Limpa campos após registro (simulação)
+            document.getElementById('name').value = '';
+            document.getElementById('studentNumber').value = '';
+            document.getElementById('date').value = '';
+            document.getElementById('observation').value = '';
+        }
+
+        // Função para filtrar observações (
